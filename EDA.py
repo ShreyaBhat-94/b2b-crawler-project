@@ -5,16 +5,36 @@ from collections import Counter
 import re
 import os
 
-#Folder for visualizations
-if not os.path.exists("visualizations"):
-    os.makedirs("visualizations")
+# Folder for visualizations
+
+viz_folder = "visualizations"
+if not os.path.exists(viz_folder):
+    os.makedirs(viz_folder)
+
+print("All visualizations will be saved in:", os.path.abspath(viz_folder))
+
 
 # Load dataset
 df = pd.read_csv("products.csv")
 
+# Clean Price Column
+# Remove currency symbols and convert to numeric
+df['Price'] = df['Price'].astype(str).str.replace(r'[^0-9.]', '', regex=True)
+df['Price'] = pd.to_numeric(df['Price'], errors='coerce')
+
+# Clean Rating column if needed (convert text ratings to numeric)
+rating_map = {
+    'One': 1,
+    'Two': 2,
+    'Three': 3,
+    'Four': 4,
+    'Five': 5
+}
+df['Rating'] = df['Rating'].map(rating_map)
+df['Rating'] = pd.to_numeric(df['Rating'], errors='coerce')
+
 
 # Summary Statistics
-
 print("==== Dataset Preview ====")
 print(df.head())
 
@@ -36,14 +56,12 @@ print(location_counts)
 
 
 # Common Attributes
-
-
 # Top 10 product types (categories)
 top_categories = df['Category'].value_counts().head(10)
 print("\n==== Top 10 Categories ====")
 print(top_categories)
 
-# Top 10 price ranges
+# Price statistics
 print("\n==== Price Statistics ====")
 print("Min Price:", df['Price'].min())
 print("Max Price:", df['Price'].max())
@@ -53,13 +71,15 @@ print("Standard Deviation:", round(df['Price'].std(), 2))
 
 # Price distribution plot
 plt.figure(figsize=(8,5))
-sns.histplot(df['Price'], bins=10, kde=True, color='skyblue')
+sns.histplot(df['Price'].dropna(), bins=10, kde=True, color='skyblue')
 plt.title("Price Distribution")
 plt.xlabel("Price")
 plt.ylabel("Number of Products")
 plt.tight_layout()
-plt.savefig("visualizations/price_distribution.png")
+price_path = os.path.join(viz_folder, "price_distribution.png")
+plt.savefig(price_path)
 plt.show()
+print("Saved Price Distribution plot at:", os.path.abspath(price_path))
 
 # Frequent keywords in product names
 words = " ".join(df["Product_Name"].astype(str)).lower()
@@ -69,32 +89,33 @@ print("\n==== Top 10 Frequent Words in Product Names ====")
 for word, count in common_words:
     print(f"{word}: {count}")
 
-
 # Regional Insights
-
 plt.figure(figsize=(8,5))
 sns.countplot(y='Location', data=df, order=location_counts.index, palette='Set2')
 plt.title("Supplier Location Distribution")
 plt.xlabel("Number of Products")
 plt.ylabel("Location")
 plt.tight_layout()
-plt.savefig("visualizations/supplier_locations.png")
+loc_path = os.path.join(viz_folder, "supplier_locations.png")
+plt.savefig(loc_path)
 plt.show()
+print("Saved Supplier Locations plot at:", os.path.abspath(loc_path))
 
 
 # Ratings Insights
-
 print("\n==== Ratings Statistics ====")
 print(df['Rating'].describe())
 
 plt.figure(figsize=(8,5))
-sns.histplot(df['Rating'], bins=5, kde=False, color='orange')
+sns.histplot(df['Rating'].dropna(), bins=5, kde=False, color='orange')
 plt.title("Product Ratings Distribution")
 plt.xlabel("Rating")
 plt.ylabel("Number of Products")
 plt.tight_layout()
-plt.savefig("visualizations/ratings_distribution.png")
+ratings_path = os.path.join(viz_folder, "ratings_distribution.png")
+plt.savefig(ratings_path)
 plt.show()
+print("Saved Ratings Distribution plot at:", os.path.abspath(ratings_path))
 
 
 # Detect Anomalies & Data Quality
@@ -114,11 +135,13 @@ price_outliers = df[(df['Price'] < lower_bound) | (df['Price'] > upper_bound)]
 print("\n==== Price Outliers ====")
 print(price_outliers[['Product_Name','Price','Category','Supplier','Location']])
 
-#Visualize outliers
+# Visualize outliers
 plt.figure(figsize=(8,5))
 sns.boxplot(x='Price', data=df, color='lightgreen')
 plt.title("Price Outliers Detection")
 plt.xlabel("Price")
 plt.tight_layout()
-plt.savefig("visualizations/price_outliers.png")
+outliers_path = os.path.join(viz_folder, "price_outliers.png")
+plt.savefig(outliers_path)
 plt.show()
+print("Saved Price Outliers plot at:", os.path.abspath(outliers_path))
